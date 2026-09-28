@@ -85,7 +85,7 @@ export function Challenge({
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [config, onComplete]);
+  }, [config]);
 
   // Fire onComplete exactly once when the timer reaches zero.
   useEffect(() => {
