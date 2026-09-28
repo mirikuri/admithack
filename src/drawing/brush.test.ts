@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
 import { drawLine } from './brush';
-import type { Point } from '../types';
 
 function makeCtx() {
   return {

@@ -1,3 +1,4 @@
+// @ts-ignore - MediaPipe types are not fully compatible with TypeScript strict mode
 import { HandLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
 import type { Landmark } from '../types';
 
