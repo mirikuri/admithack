@@ -60,6 +60,7 @@ export function Challenge({
   const canvasRef = useRef<CanvasHandle>(null);
   const lastPointRef = useRef<Point | null>(null);
   const templateDrawnRef = useRef(false);
+  const completedRef = useRef(false);
 
   // Draw template once after initial render
   useEffect(() => {
@@ -71,14 +72,13 @@ export function Challenge({
     canvasRef.current?.startTrajectory();
   });
 
-  // Timer
+  // Timer — state updater is kept pure (no side-effects) to avoid double-fire
+  // in React 18 StrictMode, which calls updater functions twice.
   useEffect(() => {
     const interval = setInterval(() => {
       setTimeLeft(t => {
         if (t <= 1) {
           clearInterval(interval);
-          const trajectory = canvasRef.current?.getTrajectory() ?? [];
-          onComplete(config.score(trajectory));
           return 0;
         }
         return t - 1;
@@ -86,6 +86,15 @@ export function Challenge({
     }, 1000);
     return () => clearInterval(interval);
   }, [config, onComplete]);
+
+  // Fire onComplete exactly once when the timer reaches zero.
+  useEffect(() => {
+    if (timeLeft === 0 && !completedRef.current) {
+      completedRef.current = true;
+      const trajectory = canvasRef.current?.getTrajectory() ?? [];
+      onComplete(config.score(trajectory));
+    }
+  }, [timeLeft, config, onComplete]);
 
   // Real-time feedback polling
   useEffect(() => {
