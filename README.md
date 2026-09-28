@@ -1,149 +1,153 @@
-# 🎨 Air Painter
+# Air Painter
 
-**Draw without touching anything.**
+Draw in the air with your webcam. No mouse, no keyboard, no touchscreen — just gestures.
 
-Air Painter is a web application that transforms your ordinary webcam into a touchless drawing interface. Move your hand in front of the camera and use intuitive gestures to draw, erase, change brush size, and select colors—all without touching the screen.
+Air Painter turns a webcam into a contactless drawing tablet using MediaPipe hand tracking and hand-written gesture rules. Everything runs client-side in the browser.
 
 ## Live Demo
 
-[Live Demo](https://air-painter.vercel.app)
+_Deploy pending — run locally with the instructions below._
 
 ## Quick Start
 
 ```bash
-# Install dependencies
 npm install
-
-# Start development server
 npm run dev
 ```
 
-The app will open at `http://localhost:5173`. Allow camera access and start drawing!
+Opens on `http://localhost:5173`. Allow camera access when prompted and move your hand into frame.
 
-## How It Works
+## Gestures
 
-### Gesture Recognition
+| Gesture | Landmark rule | Action |
+| --- | --- | --- |
+| ☝ **Index draw** | Index extended, other fingers folded | Draws a line under the fingertip |
+| ✊ **Fist erase** | All four fingers folded, held for 500 ms | Erases the area around the fist |
+| 🖐 **Open palm** | All four fingers extended | Sets brush size from index-to-pinky spread |
+| 🤏 **Pinch** | Thumb tip near index tip (normalised) | Opens the colour palette |
 
-Air Painter uses **custom gesture logic** built on MediaPipe hand landmarks—no machine learning model training required.
+Two design decisions that matter:
 
-Each gesture is defined by analyzing the position and state of hand landmarks (wrist, thumb, index, middle, ring, and pinky fingers):
+- **Camera-distance invariant sizing.** The pinch threshold and the brush-size mapping both divide by `handSize = dist(wrist, middleMCP)`. Moving the hand closer or further from the camera changes the raw distances but leaves the ratios unchanged.
+- **Destructive-gesture guard.** Fist-erase requires 500 ms of continuous hold on top of the 3-frame debounce, so brief fists during hand transitions don't wipe the canvas.
 
-- **☝️ Index Finger (DRAW)**: Index finger extended, other fingers folded → draws a line
-- **✊ Fist (ERASE)**: All fingers bent close to palm → erases the drawing
-- **🖐 Open Palm (BRUSH SIZE)**: All fingers extended → adjusts brush size based on thumb-to-index distance
-- **🤏 Pinch (COLOR)**: Thumb and index finger touching → selects color from palette
+Pinch uses hysteresis to avoid flicker: enters at `normalizedDist < 0.18`, exits at `> 0.25`.
 
-The system processes video landmarks in real-time and converts finger positions to canvas coordinates, accounting for camera mirroring so gestures feel natural.
+## The App Flow
 
-### Error Detection & Feedback
+1. **Welcome** — start button, requests camera permission.
+2. **Camera check** — live preview with hand-skeleton overlay; confirms a hand is detected.
+3. **Challenges** — three timed prompts, in order:
+   - Draw a circle (20 s)
+   - Draw a triangle (25 s)
+   - Draw a star (30 s)
 
-Real-time trajectory analysis provides specific, actionable feedback:
+   A dashed template appears behind the canvas as a guide. Real-time hints appear every 1.5 s while drawing.
+4. **Result** — per-challenge scores plus an aggregate 0–100 score and level: _Beginner_ (< 55), _Apprentice_ (55–74), _Artist Level_ (75–89), _Master Artist_ (≥ 90).
 
-- **"Too Fast"** — User is moving too quickly for accurate drawing
-- **"Move Closer"** — Hand is too small in the frame for reliable tracking
-- **"Wrong Shape"** — Drawn shape doesn't match the target template
-- **"Make It Larger"** — Circle/shape is too small to evaluate
-- **"Complete the Shape"** — User hasn't finished the gesture
-- **"Hand Position Unclear"** — Gesture is ambiguous; hand needs adjustment
+## Real-Time Error Feedback
 
-Each challenge (circle, triangle, star) has custom validation rules that measure:
-- Distance from target trajectory
-- Shape continuity
-- Movement speed and smoothness
-- Completion and closure
+The scoring functions inspect the trajectory as it's drawn and return specific hints, not just "wrong". Actual messages returned by the code:
 
-## Features
+**Circle:** `No drawing detected` · `Too fast — slow down your hand` · `Make the circle larger` · `Try making a continuous circular movement` · `Complete the circle back to the start`
 
-### Challenge Mode
-Draw geometric shapes (circle, triangle, star) against semi-transparent templates. Each challenge:
-- Shows the target shape as a guide
-- Runs a 20-second timer
-- Provides real-time error feedback
-- Calculates accuracy score
+**Triangle:** `No drawing detected` · `Need 3 clear corners — draw sharper turns` · `Connect the last point back to the start`
 
-### Real-Time Feedback
-- **Hand skeleton overlay** on the camera preview (wrist, fingers, joints)
-- **Gesture indicator** shows current detected gesture and confidence
-- **Status messages** confirm hand detection and provide guidance
+**Star:** `No drawing detected` · `The star has too few points — try sharper corners` · `Only N points found — aim for 5`
 
-### Result Screen
-After completing challenges, view:
-- Overall score
-- Per-challenge accuracy percentages
-- Time taken
-- Difficulty rating ("Artist Level", "Great Job", etc.)
+## Scoring
 
-### Responsive Design
-Works on desktop and mobile devices. Simply allow camera access and start drawing.
+Each challenge produces `{ score, accuracy, smoothness, error }` on 0–100 scales.
 
-## Hackathon Requirements
+**Circle** uses an explicit two-term formula:
 
-| Requirement | Implementation |
-| --- | --- |
-| **Webcam Recognition** | MediaPipe Hands in browser |
-| **Real-Time Processing** | Landmarks processed live from video stream |
-| **No Keyboard/Mouse** | Pure gesture control |
-| **Minimum 3 Gestures** | Index, Fist, Open Palm, Pinch (4 total) |
-| **Gesture Actions** | Draw, Erase, Brush Size, Color Selection |
-| **Visual Feedback** | Hand skeleton + gesture indicator + status messages |
-| **Complete Scenario** | Camera → Tutorial → Challenges (3) → Results |
-| **Error Detection** | Trajectory analysis with specific hints |
-| **Actionable Feedback** | "Move closer", "Slow down", "Draw wider circle", etc. |
-| **Custom Logic** | Hand landmark rules, no external ML model |
-| **Web Deployment** | React/TypeScript + Vite on Vercel |
-| **Zero Installation** | Standard web app (no native software needed) |
-| **Bonus: Leaderboard** | localStorage-based score tracking |
-| **Bonus: Mobile** | Responsive camera UI and touch-friendly layout |
-| **Bonus: Audio** | Success and error sound effects |
+```
+accuracy = max(0, (1 - avgDistToTemplate / avgRadius) * 100)
+coverage = coveredTemplatePoints / 100 * 100   // "covered" if a drawn point is within 5% of radius
+score    = round(accuracy * 0.6 + coverage * 0.4)
+```
+
+**Triangle** and **star** use shape-detection heuristics (corner detection for triangle, local-extrema peak counting for star) — they can't share the circle's `templateRadius`, so they map heuristic feature counts to a 0–100 score directly.
+
+The final score is the mean of the three challenge scores.
 
 ## Tech Stack
 
-- **Frontend**: React 18 + TypeScript + Vite
-- **Vision**: MediaPipe Hands (for landmark detection)
-- **Drawing**: Canvas API
-- **Styling**: Tailwind CSS
-- **Bundler**: Vite
-- **Testing**: Vitest + Happy DOM
-- **Deployment**: Vercel
+- **React 19** + **TypeScript** + **Vite** — UI and build
+- **`@mediapipe/tasks-vision@0.10.3`** — hand landmark detection (WASM URL pinned to the same version)
+- **Canvas 2D** — drawing surface
+- **Tailwind CSS 3** — styling
+- **Vitest** + **happy-dom** — 33 unit tests covering smoothing, gesture classification, debounce/hold, and challenge scoring
+
+No custom ML model — gestures are hand-written rules on 21 MediaPipe landmarks. No backend, no auth, no persistence.
 
 ## Project Structure
 
 ```
 src/
-├── components/        # React components (Camera, Canvas, etc.)
-├── vision/           # Hand tracking and landmark processing
-├── drawing/          # Brush, eraser, and color logic
-├── challenges/       # Challenge definitions and scoring
-├── data/            # Challenge templates and configuration
-└── App.tsx          # Main application component
+├── vision/
+│   ├── handTracking.ts     MediaPipe wrapper
+│   ├── gestures.ts         classifyGesture + debouncer + brushSizeFromPalm
+│   └── smoothing.ts        EMA smoother (α=0.35) + landmark→canvas mapper
+├── drawing/
+│   ├── brush.ts            drawLine
+│   ├── eraser.ts           erase
+│   └── colors.ts           8-colour palette
+├── challenges/
+│   ├── circle.ts           trajectory-based circle scoring
+│   ├── triangle.ts         corner-detection scoring
+│   ├── star.ts             peak-detection scoring
+│   └── scoring.ts          aggregateScore + level mapping
+├── components/
+│   ├── Camera.tsx          getUserMedia + rAF loop, mirrored
+│   ├── HandSkeleton.tsx    SVG landmark overlay
+│   ├── Canvas.tsx          drawing canvas with imperative handle
+│   ├── Challenge.tsx       template + timer + gesture→draw routing
+│   ├── GestureIndicator.tsx, Feedback.tsx, ResultScreen.tsx
+├── data/challenges.ts      challenge configs
+├── types.ts                shared types
+└── App.tsx                 state machine + screen routing
 ```
 
-## Development
+## Notes on Implementation
+
+- **Mirroring.** The video element uses CSS `transform: scaleX(-1)`, and the cursor mapping does `canvasX = (1 - landmark.x) * width`, so the drawing tracks your hand naturally. MediaPipe's `Left`/`Right` labels are therefore inverted and are ignored — only landmark coordinates are used.
+- **Smoothing.** The index fingertip (`landmark[8]`) passes through an EMA (`α = 0.35`) inside `Challenge.tsx` before being mapped to canvas pixels — enough to kill jitter without adding visible lag.
+- **Debouncing.** Gestures need 3 stable frames to activate. Fist adds a 500 ms wall-clock hold on top of that.
+- **Timer isolation.** The challenge timer's `useEffect` depends only on `[config]`, not on the `onComplete` callback whose identity changes every frame — otherwise the interval would tear down and recreate before it could tick.
+
+## Scripts
 
 ```bash
-# Install dependencies
-npm install
-
-# Run development server with hot reload
-npm run dev
-
-# Build for production
-npm run build
-
-# Run tests
-npm run test:run
-
-# Run tests in watch mode
-npm run test
+npm run dev        # dev server with HMR
+npm run build      # tsc -b && vite build → dist/
+npm run preview    # preview the built output
+npm run test       # vitest watch mode
+npm run test:run   # vitest single run
+npm run lint       # oxlint
 ```
 
-## Notes
+## Deployment
 
-- Camera permission is required; the app requests it on first load
-- Hand tracking works best in well-lit environments
-- The app runs entirely in the browser—no server required
-- Drawing data is stored in browser memory only (no persistence)
+`vercel.json` targets a Vite build. To deploy:
 
----
+```bash
+npx vercel --prod
+```
 
-Built for HackAdmit 2024 🚀
+Update the "Live Demo" link above with the returned URL.
+
+## Requirements Compliance
+
+| Requirement | Where |
+| --- | --- |
+| Webcam recognition, browser-only | `src/vision/handTracking.ts` (MediaPipe Tasks Vision) |
+| Real-time processing | `requestAnimationFrame` loop in `Camera.tsx` (runs at the display refresh rate; MediaPipe's `VIDEO` mode consumes each frame) |
+| No keyboard / mouse / touch during play | All input is gesture-driven; only the start buttons are clickable |
+| ≥ 3 distinct gestures with distinct actions | 4 gestures: draw, erase, brush size, colour |
+| Visual gesture feedback | Hand skeleton overlay + `GestureIndicator` HUD |
+| Complete user scenario | Welcome → camera check → 3 challenges → result screen |
+| Specific error detection | Trajectory analysis with per-challenge hint text |
+| Custom gesture logic | Hand-written rules on 21 landmarks — no trained model |
+| Web deployment | Vite build, `vercel.json` present |
+| Zero installation for end user | Any modern browser with camera access |
