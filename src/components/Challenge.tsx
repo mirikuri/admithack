@@ -47,6 +47,16 @@ function drawTemplate(ctx: CanvasRenderingContext2D, type: string, w: number, h:
       i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
     }
     ctx.closePath();
+  } else if (type === 'square') {
+    ctx.rect(cx - r, cy - r, r * 2, r * 2);
+  } else if (type === 'spiral') {
+    ctx.beginPath();
+    for (let t = 0; t <= 4 * Math.PI; t += 0.06) {
+      const sr = (t / (4 * Math.PI)) * r;
+      const sx = cx + sr * Math.cos(t - Math.PI / 2);
+      const sy = cy + sr * Math.sin(t - Math.PI / 2);
+      t === 0 ? ctx.moveTo(sx, sy) : ctx.lineTo(sx, sy);
+    }
   }
   ctx.stroke();
   ctx.restore();

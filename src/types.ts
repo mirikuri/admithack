@@ -14,7 +14,7 @@ export type Gesture =
 export type AppScreen =
   | 'welcome'
   | 'camera'
-  | 'calibration'
+  | 'menu'
   | 'freeDraw'
   | 'challenge'
   | 'result';

@@ -1,6 +1,8 @@
 import { scoreCircle } from '../challenges/circle';
 import { scoreTriangle } from '../challenges/triangle';
 import { scoreStar } from '../challenges/star';
+import { scoreSquare } from '../challenges/square';
+import { scoreSpiral } from '../challenges/spiral';
 import type { ScoringResult, Point } from '../types';
 
 export interface ChallengeConfig {
@@ -8,7 +10,7 @@ export interface ChallengeConfig {
   name: string;
   icon: string;
   durationSeconds: number;
-  templateDescription: string; // used for drawing template on canvas
+  templateDescription: string;
   score: (trajectory: Point[]) => ScoringResult;
 }
 
@@ -36,5 +38,21 @@ export const CHALLENGES: ChallengeConfig[] = [
     durationSeconds: 30,
     templateDescription: 'star',
     score: scoreStar,
+  },
+  {
+    id: 'square',
+    name: 'Draw a Square',
+    icon: '□',
+    durationSeconds: 25,
+    templateDescription: 'square',
+    score: scoreSquare,
+  },
+  {
+    id: 'spiral',
+    name: 'Draw a Spiral',
+    icon: '🌀',
+    durationSeconds: 35,
+    templateDescription: 'spiral',
+    score: scoreSpiral,
   },
 ];

@@ -11,7 +11,6 @@ export const PALETTE = [
 
 export type ColorId = typeof PALETTE[number]['id'];
 
-// Given a cursor position and the pinch palette overlay rect, return which color is hovered
 export function getColorAtPosition(
   x: number,
   y: number,

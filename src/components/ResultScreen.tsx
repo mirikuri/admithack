@@ -29,7 +29,7 @@ export function ResultScreen({ finalScore, onRestart }: ResultScreenProps) {
         onClick={onRestart}
         className="mt-4 px-8 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-lg transition-colors"
       >
-        DRAW AGAIN
+        BACK TO MENU
       </button>
     </div>
   );
