@@ -57,19 +57,19 @@ export function FreeDraw({
       <HandSkeleton landmarks={landmarks} width={cameraWidth} height={cameraHeight} />
 
       {/* HUD */}
-      <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-black/60 px-5 py-2 rounded-xl text-white">
-        <span className="font-bold text-indigo-300">✏ FREE DRAW</span>
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-black/60 px-5 py-2 rounded-xl text-white backdrop-blur">
+        <span className="font-semibold text-stroke">Free draw</span>
         <button
           onClick={() => canvasRef.current?.clear()}
-          className="px-3 py-1 text-sm font-bold bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
+          className="px-3 py-1 text-sm bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
         >
-          CLEAR
+          Clear
         </button>
         <button
           onClick={onBack}
-          className="px-3 py-1 text-sm font-bold bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-colors"
+          className="px-3 py-1 text-sm bg-stroke hover:bg-stroke/80 rounded-lg transition-colors"
         >
-          ← MENU
+          Menu
         </button>
       </div>
 

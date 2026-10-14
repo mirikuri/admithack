@@ -19,9 +19,10 @@ const gestureDebounce = createGestureDebouncer(3, 500);
 let prevPinch = false;
 
 // Viewport zones for hand-gesture menu navigation (nx = 1 - landmark.x, ny = landmark.y)
+// Vertical split: top half = free draw, bottom half = challenges
 const MENU_ZONES: ButtonZone[] = [
-  { id: 'freeDraw',  xMin: 0.05, xMax: 0.47, yMin: 0.25, yMax: 0.80 },
-  { id: 'challenge', xMin: 0.53, xMax: 0.95, yMin: 0.25, yMax: 0.80 },
+  { id: 'freeDraw',  xMin: 0.05, xMax: 0.95, yMin: 0.20, yMax: 0.52 },
+  { id: 'challenge', xMin: 0.05, xMax: 0.95, yMin: 0.54, yMax: 0.85 },
 ];
 
 export default function App() {
@@ -99,7 +100,7 @@ export default function App() {
         transform: 'translate(-50%, -50%)',
         width: 320, height: 240,
         borderRadius: 16, overflow: 'hidden',
-        border: '2px solid #6366f1',
+        border: '2px solid #D4622A',
         zIndex: 10,
       };
     }
@@ -121,22 +122,53 @@ export default function App() {
 
   // ── Welcome ──────────────────────────────────────────────────────────────
   if (screen === 'welcome') return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#1e1e2e] text-white gap-8">
-      <h1 className="text-5xl font-black tracking-tight">AIR PAINTER</h1>
-      <p className="text-gray-400 text-xl italic">Draw without touching anything</p>
+    <div className="relative flex flex-col items-center justify-center min-h-screen bg-ink text-paper overflow-hidden gap-8">
+      {/* Animated brushstroke — the hero decorative element */}
+      <svg
+        viewBox="0 0 800 200"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="absolute inset-x-0 top-1/4 w-full opacity-20 pointer-events-none"
+        aria-hidden="true"
+      >
+        <path
+          d="M 20 140 C 80 40, 160 170, 260 100 C 360 30, 420 160, 520 90 C 620 20, 700 130, 780 80"
+          stroke="#D4622A"
+          strokeWidth="6"
+          strokeLinecap="round"
+          pathLength="1"
+          className="animate-draw-stroke"
+        />
+        <path
+          d="M 40 160 C 120 80, 200 150, 320 110 C 440 70, 500 140, 600 100 C 680 68, 740 120, 790 100"
+          stroke="#39C9A8"
+          strokeWidth="3"
+          strokeLinecap="round"
+          pathLength="1"
+          className="animate-draw-stroke"
+          style={{ animationDelay: '0.4s' }}
+        />
+      </svg>
+
+      <div className="relative flex flex-col items-center gap-3 text-center">
+        <h1 className="text-7xl font-extrabold leading-none tracking-tight">Air Painter</h1>
+        <p className="text-paper/50 text-lg">Draw in the air — no mouse, no keyboard</p>
+      </div>
+
       <button
         onClick={startApp}
-        className="px-10 py-4 bg-indigo-600 hover:bg-indigo-500 rounded-2xl font-bold text-xl transition-colors"
+        className="relative px-10 py-4 bg-stroke hover:bg-stroke/80 text-white rounded-lg font-semibold text-lg transition-colors"
       >
-        START DRAWING
+        Start drawing
       </button>
-      <p className="text-gray-500 text-sm">Allow camera access to start</p>
+
+      <p className="text-paper/30 text-xs">Allow camera access when prompted</p>
     </div>
   );
 
   // ── Camera check ──────────────────────────────────────────────────────────
   if (screen === 'camera') return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#1e1e2e] text-white gap-6">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ink text-paper gap-6">
       {cameraStarted && (
         <div style={getCameraStyle()}>
           <Camera
@@ -148,21 +180,21 @@ export default function App() {
         </div>
       )}
 
-      <h2 className="text-2xl font-bold">CAMERA CHECK</h2>
+      <h2 className="text-2xl font-semibold">Camera check</h2>
 
       {cameraError ? (
-        <div className="text-red-400 max-w-sm text-center">{cameraError}</div>
+        <div className="text-red-400 max-w-sm text-center text-sm">{cameraError}</div>
       ) : (
         <>
           <div style={{ height: 256 }} />
-          <p className="text-gray-400">
-            {landmarks ? 'Hand detected — ready!' : 'Move your hand into frame'}
+          <p className="text-paper/50 text-sm">
+            {landmarks ? 'Hand detected — ready' : 'Move your hand into the frame'}
           </p>
           <button
             onClick={() => setScreen('menu')}
-            className="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-lg transition-colors"
+            className="px-8 py-3 bg-stroke hover:bg-stroke/80 text-white rounded-lg font-semibold text-lg transition-colors"
           >
-            CONTINUE →
+            Continue
           </button>
         </>
       )}
@@ -171,7 +203,7 @@ export default function App() {
 
   // ── Menu ─────────────────────────────────────────────────────────────────
   if (screen === 'menu') return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#1e1e2e] text-white gap-12">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ink text-paper gap-8">
       {/* Persistent camera (small corner preview for hand cursor orientation) */}
       <div style={getCameraStyle()}>
         <Camera
@@ -182,35 +214,31 @@ export default function App() {
         />
       </div>
 
-      <div className="flex flex-col items-center gap-2">
-        <h1 className="text-5xl font-black tracking-tight">AIR PAINTER</h1>
-        <p className="text-gray-500 text-sm tracking-widest">CHOOSE MODE</p>
+      <div className="flex flex-col items-center gap-1">
+        <h1 className="text-3xl font-extrabold">Air Painter</h1>
+        <p className="text-paper/40 text-sm">Choose a mode</p>
       </div>
 
-      <div className="flex gap-8">
+      <div className="flex flex-col gap-4 w-full max-w-sm px-6">
         <button
           onClick={() => setScreen('freeDraw')}
-          className="flex flex-col items-center gap-4 px-12 py-8 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-indigo-400 rounded-2xl transition-all"
-          style={{ minWidth: 200 }}
+          className="flex flex-col gap-1 px-8 py-7 bg-white/[0.07] hover:bg-white/[0.12] border border-white/10 hover:border-stroke rounded-xl transition-all text-left"
         >
-          <span className="text-5xl">✏️</span>
-          <span className="font-black text-xl tracking-widest text-indigo-300">FREE DRAW</span>
-          <span className="text-gray-500 text-xs">No limits, just paint</span>
+          <span className="font-semibold text-xl text-paper">Free draw</span>
+          <span className="text-paper/40 text-sm">Paint without limits</span>
         </button>
 
         <button
           onClick={startChallenge}
-          className="flex flex-col items-center gap-4 px-12 py-8 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-indigo-400 rounded-2xl transition-all"
-          style={{ minWidth: 200 }}
+          className="flex flex-col gap-1 px-8 py-7 bg-white/[0.07] hover:bg-white/[0.12] border border-white/10 hover:border-stroke rounded-xl transition-all text-left"
         >
-          <span className="text-5xl">🎯</span>
-          <span className="font-black text-xl tracking-widest text-indigo-300">CHALLENGES</span>
-          <span className="text-gray-500 text-xs">{CHALLENGES.length} shapes to draw</span>
+          <span className="font-semibold text-xl text-paper">Challenges</span>
+          <span className="text-paper/40 text-sm">{CHALLENGES.length} shapes to trace</span>
         </button>
       </div>
 
-      <p className="text-gray-600 text-xs tracking-widest">
-        POINT AT BUTTON AND HOLD 2s · OR PINCH TO SELECT
+      <p className="text-paper/20 text-xs">
+        Point and hold 2 s — or pinch to select
       </p>
 
       <HandCursor
@@ -228,7 +256,7 @@ export default function App() {
 
   // ── Free Draw ─────────────────────────────────────────────────────────────
   if (screen === 'freeDraw') return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#1e1e2e]">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ink">
       <div style={getCameraStyle()}>
         <Camera onFrame={handleFrame} onError={() => {}} onReady={() => {}} />
       </div>
@@ -255,7 +283,7 @@ export default function App() {
 
   // ── Challenge ─────────────────────────────────────────────────────────────
   if (screen === 'challenge') return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#1e1e2e]">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ink">
       <div style={getCameraStyle()}>
         <Camera onFrame={handleFrame} onError={() => {}} onReady={() => {}} />
       </div>
